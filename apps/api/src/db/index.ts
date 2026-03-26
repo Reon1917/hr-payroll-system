@@ -1,12 +1,27 @@
 import 'dotenv/config';
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
-import { getEnv } from '../config/env';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import { getOptionalEnv } from '../config/env';
 import * as schema from './schema';
 
-const sql = neon(getEnv('DATABASE_URL'));
+const databaseUrl = getOptionalEnv('DATABASE_URL');
 
-export const db = drizzle({
-  client: sql,
-  schema,
-});
+function shouldUseSsl(connectionString: string): boolean {
+  return !connectionString.includes('sslmode=disable');
+}
+
+const pool = databaseUrl
+  ? new Pool({
+      connectionString: databaseUrl,
+      ssl: shouldUseSsl(databaseUrl)
+        ? { rejectUnauthorized: false }
+        : undefined,
+    })
+  : null;
+
+export const db = databaseUrl
+  ? drizzle({
+      client: pool!,
+      schema,
+    })
+  : null;
