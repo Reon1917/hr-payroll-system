@@ -9,11 +9,12 @@ const summaryItems = [
   },
   {
     label: "Access model",
-    value: "Admins manage payroll. Employees only see their own portal data.",
+    value:
+      "Shared portfolio demo. Public signup opens an employee portal account, while seeded demo users cover the full admin walkthrough.",
   },
   {
     label: "Authentication",
-    value: "Email and password are active for both admin and employee access.",
+    value: "Email and password are active for seeded demo users and public signups.",
   },
 ];
 
@@ -79,7 +80,7 @@ export default async function HomePage() {
               <p className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-foreground">
                 Payroll System
               </p>
-              <p className="text-sm text-muted">Single-company payroll operations</p>
+              <p className="text-sm text-muted">Shared portfolio demo</p>
             </div>
           </div>
 
@@ -112,13 +113,18 @@ export default async function HomePage() {
               records, pay periods, calculation review, approval, payment status,
               and a focused employee portal.
             </p>
+            <div className="mt-6 max-w-3xl rounded-md border border-[#d8e4ff] bg-[#f6f9ff] px-4 py-3 text-sm leading-6 text-muted">
+              This is a shared resume demo. You can create your own employee
+              portal account to explore the self-service flow, or use the seeded
+              demo accounts below to review populated admin and employee data.
+            </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/signup"
                 className="inline-flex items-center justify-center rounded-md bg-foreground px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-900"
               >
-                Create account
+                Create demo account
               </Link>
               <Link
                 href="/login"
@@ -190,7 +196,9 @@ export default async function HomePage() {
               <div className="flex items-end justify-between gap-4 border-b border-border pb-4">
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Demo access</h2>
-                  <p className="text-sm text-muted">Seeded credentials for review.</p>
+                  <p className="text-sm text-muted">
+                    Shared seeded credentials for the quickest full walkthrough.
+                  </p>
                 </div>
               </div>
 

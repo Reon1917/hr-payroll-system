@@ -56,44 +56,53 @@ export default async function PortalPage() {
 
       <section className="rounded-xl border border-border bg-white p-5">
         <h2 className="text-lg font-semibold text-foreground">Payroll history</h2>
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="text-muted">
-              <tr>
-                <th className="pb-3 font-medium">Pay period</th>
-                <th className="pb-3 font-medium">Payment date</th>
-                <th className="pb-3 font-medium text-right">Net pay</th>
-                <th className="pb-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payslips.map((payslip) => (
-                <tr key={payslip.payrollRecordId} className="border-t border-border">
-                  <td className="py-3">
-                    <Link
-                      href={`/portal/payslips/${payslip.payrollRecordId}`}
-                      className="font-medium text-foreground"
-                    >
-                      {payslip.payPeriodName}
-                    </Link>
-                  </td>
-                  <td className="py-3 text-muted">
-                    {formatDate(payslip.paymentDate)}
-                  </td>
-                  <td className="py-3 text-right font-medium text-foreground">
-                    {formatCurrency(payslip.netPay)}
-                  </td>
-                  <td className="py-3">
-                    <StatusBadge
-                      label={payslip.status}
-                      tone={payslip.status === "paid" ? "success" : "primary"}
-                    />
-                  </td>
+        {payslips.length ? (
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="text-muted">
+                <tr>
+                  <th className="pb-3 font-medium">Pay period</th>
+                  <th className="pb-3 font-medium">Payment date</th>
+                  <th className="pb-3 font-medium text-right">Net pay</th>
+                  <th className="pb-3 font-medium">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {payslips.map((payslip) => (
+                  <tr key={payslip.payrollRecordId} className="border-t border-border">
+                    <td className="py-3">
+                      <Link
+                        href={`/portal/payslips/${payslip.payrollRecordId}`}
+                        className="font-medium text-foreground"
+                      >
+                        {payslip.payPeriodName}
+                      </Link>
+                    </td>
+                    <td className="py-3 text-muted">
+                      {formatDate(payslip.paymentDate)}
+                    </td>
+                    <td className="py-3 text-right font-medium text-foreground">
+                      {formatCurrency(payslip.netPay)}
+                    </td>
+                    <td className="py-3">
+                      <StatusBadge
+                        label={payslip.status}
+                        tone={payslip.status === "paid" ? "success" : "primary"}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="mt-4 rounded-lg border border-dashed border-border bg-surface px-4 py-5 text-sm leading-6 text-muted">
+            This demo account is active, but it does not have generated payroll
+            records yet. You can keep exploring the portal, or sign in with the
+            seeded employee demo account from the landing page to review sample
+            payslips.
+          </div>
+        )}
       </section>
     </div>
   );

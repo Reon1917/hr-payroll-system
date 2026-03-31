@@ -1,9 +1,16 @@
 import { Injectable, Inject, ForbiddenException } from '@nestjs/common';
+import type { EmployeeEntity, PayPeriodEntity } from '../storage/entities';
 import { appEnv } from '../config/env';
 import { AuthService } from '../auth/auth.service';
 import { APP_REPOSITORY, type AppRepository } from '../storage/app-repository';
 import { PayrollService } from '../payroll/payroll.service';
 import { recalculatePayrollTotals } from '../payroll/payroll.logic';
+import {
+  demoSeedSchema,
+  type DemoAccountKey,
+  type DemoEmployeeKey,
+  type DemoPayPeriodKey,
+} from './demo-seed.schema';
 
 @Injectable()
 export class SeedsService {
@@ -14,134 +21,141 @@ export class SeedsService {
     private readonly repository: AppRepository,
   ) {}
 
+  private getAccountCredentials(key: DemoAccountKey) {
+    if (key === 'admin') {
+      return {
+        email: appEnv.demoAdminEmail,
+        password: appEnv.demoAdminPassword,
+      };
+    }
+
+    return {
+      email: appEnv.demoEmployeeEmail,
+      password: appEnv.demoEmployeePassword,
+    };
+  }
+
   async resetAndSeed() {
     await this.repository.resetAll();
 
-    const adminAccount = await this.authService.signUpUser({
-      email: appEnv.demoAdminEmail,
-      password: appEnv.demoAdminPassword,
-      name: 'HR Admin',
-      role: 'admin',
-    });
+    const accounts = new Map<
+      DemoAccountKey,
+      {
+        authUserId: string;
+        email: string;
+        role: 'admin' | 'employee';
+      }
+    >();
 
-    await this.repository.upsertUserProfile({
-      authUserId: adminAccount.user.id,
-      role: 'admin',
-      employeeId: null,
-    });
+    for (const accountSeed of demoSeedSchema.accounts) {
+      const credentials = this.getAccountCredentials(accountSeed.key);
+      const account = await this.authService.signUpUser({
+        email: credentials.email,
+        password: credentials.password,
+        name: accountSeed.name,
+        role: accountSeed.role,
+      });
 
-    const employeeAccount = await this.authService.signUpUser({
-      email: appEnv.demoEmployeeEmail,
-      password: appEnv.demoEmployeePassword,
-      name: 'Nok Payroll',
-      role: 'employee',
-    });
+      accounts.set(accountSeed.key, {
+        authUserId: account.user.id,
+        email: account.user.email,
+        role: accountSeed.role,
+      });
 
-    const salariedEmployee = await this.repository.createEmployee({
-      employeeCode: 'EMP-001',
-      fullName: 'Nok Payroll',
-      email: appEnv.demoEmployeeEmail,
-      employmentStatus: 'active',
-      workerType: 'thai',
-      nationality: 'Thai',
-      nationalId: '1103700000001',
-      taxId: '1103700000001',
-      socialSecurityNumber: '1103700000001',
-      socialSecurityEnabled: true,
-      hireDate: '2024-01-02',
-      department: 'Operations',
-      position: 'Payroll Specialist',
-      salaryType: 'monthly',
-      baseRate: 42000,
-      bankName: 'Bangkok Bank',
-      bankAccountName: 'Nok Payroll',
-      bankAccountNumber: '123-4-56789-0',
-      workPermitNumber: null,
-      workPermitExpiryDate: null,
-      visaType: null,
-      visaExpiryDate: null,
-      linkedAuthUserId: employeeAccount.user.id,
-    });
+      await this.repository.upsertUserProfile({
+        authUserId: account.user.id,
+        role: accountSeed.role,
+        employeeId: null,
+      });
+    }
 
-    await this.repository.upsertUserProfile({
-      authUserId: employeeAccount.user.id,
-      role: 'employee',
-      employeeId: salariedEmployee.id,
-    });
+    const employees = new Map<DemoEmployeeKey, EmployeeEntity>();
 
-    const dailyEmployee = await this.repository.createEmployee({
-      employeeCode: 'EMP-002',
-      fullName: 'Somchai Daily',
-      email: 'somchai.daily@company.test',
-      employmentStatus: 'active',
-      workerType: 'thai',
-      nationality: 'Thai',
-      nationalId: '1103700000002',
-      taxId: '1103700000002',
-      socialSecurityNumber: '1103700000002',
-      socialSecurityEnabled: true,
-      hireDate: '2025-05-12',
-      department: 'Warehouse',
-      position: 'Warehouse Associate',
-      salaryType: 'daily',
-      baseRate: 850,
-      bankName: 'Kasikornbank',
-      bankAccountName: 'Somchai Daily',
-      bankAccountNumber: '987-6-54321-0',
-      workPermitNumber: null,
-      workPermitExpiryDate: null,
-      visaType: null,
-      visaExpiryDate: null,
-    });
+    for (const employeeSeed of demoSeedSchema.employees) {
+      const linkedAccountKey =
+        'accountKey' in employeeSeed ? employeeSeed.accountKey : undefined;
+      const linkedAccount = linkedAccountKey
+        ? accounts.get(linkedAccountKey)
+        : undefined;
+      const seededEmail =
+        'email' in employeeSeed ? employeeSeed.email : undefined;
+      const email = linkedAccount?.email ?? seededEmail;
 
-    const hourlyEmployee = await this.repository.createEmployee({
-      employeeCode: 'EMP-003',
-      fullName: 'Anan Hourly',
-      email: 'anan.hourly@company.test',
-      employmentStatus: 'active',
-      workerType: 'foreign',
-      nationality: 'Myanmar',
-      nationalId: null,
-      passportNumber: 'MM09445521',
-      taxId: null,
-      socialSecurityNumber: 'F-33210019',
-      socialSecurityEnabled: true,
-      hireDate: '2025-08-01',
-      department: 'Support',
-      position: 'Customer Support',
-      salaryType: 'hourly',
-      baseRate: 160,
-      bankName: 'Krungthai Bank',
-      bankAccountName: 'Anan Hourly',
-      bankAccountNumber: '555-0-12345-9',
-      workPermitNumber: 'WP-2025-7781',
-      workPermitExpiryDate: '2026-12-31',
-      visaType: 'Non-LA',
-      visaExpiryDate: '2026-11-30',
-    });
+      if (!email) {
+        throw new Error(`Missing email for seeded employee ${employeeSeed.key}.`);
+      }
 
-    const currentPeriod = await this.repository.createPayPeriod({
-      name: 'April 2026 Payroll',
-      startDate: '2026-04-01',
-      endDate: '2026-04-30',
-      paymentDate: '2026-05-01',
-    });
+      const employee = await this.repository.createEmployee({
+        employeeCode: employeeSeed.employeeCode,
+        fullName: employeeSeed.fullName,
+        email,
+        employmentStatus: employeeSeed.employmentStatus,
+        workerType: employeeSeed.workerType,
+        nationality: employeeSeed.nationality,
+        nationalId: employeeSeed.nationalId,
+        passportNumber: employeeSeed.passportNumber,
+        taxId: employeeSeed.taxId,
+        socialSecurityNumber: employeeSeed.socialSecurityNumber,
+        socialSecurityEnabled: employeeSeed.socialSecurityEnabled,
+        hireDate: employeeSeed.hireDate,
+        department: employeeSeed.department,
+        position: employeeSeed.position,
+        salaryType: employeeSeed.salaryType,
+        baseRate: employeeSeed.baseRate,
+        bankName: employeeSeed.bankName,
+        bankAccountName: employeeSeed.bankAccountName,
+        bankAccountNumber: employeeSeed.bankAccountNumber,
+        workPermitNumber: employeeSeed.workPermitNumber,
+        workPermitExpiryDate: employeeSeed.workPermitExpiryDate,
+        visaType: employeeSeed.visaType,
+        visaExpiryDate: employeeSeed.visaExpiryDate,
+        linkedAuthUserId: linkedAccount?.authUserId ?? null,
+      });
 
-    const historicalPeriod = await this.repository.createPayPeriod({
-      name: 'March 2026 Payroll',
-      startDate: '2026-03-01',
-      endDate: '2026-03-31',
-      paymentDate: '2026-04-01',
-    });
+      employees.set(employeeSeed.key, employee);
 
-    for (const employee of [salariedEmployee, dailyEmployee, hourlyEmployee]) {
-      const payUnits = employee.salaryType === 'monthly' ? 1 : 0;
+      if (linkedAccount?.role === 'employee') {
+        await this.repository.upsertUserProfile({
+          authUserId: linkedAccount.authUserId,
+          role: 'employee',
+          employeeId: employee.id,
+        });
+      }
+    }
+
+    const payPeriods = new Map<DemoPayPeriodKey, PayPeriodEntity>();
+
+    for (const payPeriodSeed of demoSeedSchema.payPeriods) {
+      const payPeriod = await this.repository.createPayPeriod({
+        name: payPeriodSeed.name,
+        startDate: payPeriodSeed.startDate,
+        endDate: payPeriodSeed.endDate,
+        paymentDate: payPeriodSeed.paymentDate,
+      });
+
+      payPeriods.set(payPeriodSeed.key, payPeriod);
+    }
+
+    const adminAccount = accounts.get('admin');
+
+    if (!adminAccount) {
+      throw new Error('Missing seeded admin account.');
+    }
+
+    for (const draftRecordSeed of demoSeedSchema.draftPayroll) {
+      const employee = employees.get(draftRecordSeed.employeeKey);
+      const payPeriod = payPeriods.get(draftRecordSeed.payPeriodKey);
+
+      if (!employee || !payPeriod) {
+        throw new Error('Demo draft payroll schema references missing records.');
+      }
+
       const totals =
         employee.salaryType === 'monthly'
           ? recalculatePayrollTotals({
               salaryType: employee.salaryType,
               baseRate: employee.baseRate,
-              payUnits,
+              payUnits: draftRecordSeed.payUnits,
               adjustments: [],
             })
           : {
@@ -152,7 +166,7 @@ export class SeedsService {
             };
 
       await this.repository.createPayrollRecord({
-        payPeriodId: currentPeriod.id,
+        payPeriodId: payPeriod.id,
         employeeId: employee.id,
         employeeCodeSnapshot: employee.employeeCode,
         employeeNameSnapshot: employee.fullName,
@@ -161,112 +175,72 @@ export class SeedsService {
         positionSnapshot: employee.position,
         salaryTypeSnapshot: employee.salaryType,
         baseRateSnapshot: employee.baseRate,
-        payUnits,
+        payUnits: draftRecordSeed.payUnits,
         basePay: totals.basePay,
         additionsTotal: totals.additionsTotal,
         deductionsTotal: totals.deductionsTotal,
         netPay: totals.netPay,
         status: 'draft',
-        createdByUserId: adminAccount.user.id,
-        updatedByUserId: adminAccount.user.id,
+        createdByUserId: adminAccount.authUserId,
+        updatedByUserId: adminAccount.authUserId,
       });
     }
 
-    const historicalSeed = [
-      {
-        employee: salariedEmployee,
-        payUnits: 1,
-        adjustments: [
-          {
-            kind: 'addition' as const,
-            type: 'allowance' as const,
-            label: 'Transport allowance',
-            amount: 1500,
-            note: null,
-          },
-          {
-            kind: 'deduction' as const,
-            type: 'tax' as const,
-            label: 'Tax withholding',
-            amount: 2400,
-            note: null,
-          },
-        ],
-      },
-      {
-        employee: dailyEmployee,
-        payUnits: 26,
-        adjustments: [
-          {
-            kind: 'addition' as const,
-            type: 'overtime' as const,
-            label: 'Overtime',
-            amount: 1200,
-            note: null,
-          },
-        ],
-      },
-      {
-        employee: hourlyEmployee,
-        payUnits: 168,
-        adjustments: [
-          {
-            kind: 'deduction' as const,
-            type: 'social_security' as const,
-            label: 'Social security',
-            amount: 750,
-            note: null,
-          },
-        ],
-      },
-    ];
+    for (const historicalRecordSeed of demoSeedSchema.historicalPayroll) {
+      const employee = employees.get(historicalRecordSeed.employeeKey);
+      const payPeriod = payPeriods.get(historicalRecordSeed.payPeriodKey);
 
-    for (const item of historicalSeed) {
+      if (!employee || !payPeriod) {
+        throw new Error(
+          'Demo historical payroll schema references missing records.',
+        );
+      }
+
       const totals = recalculatePayrollTotals({
-        salaryType: item.employee.salaryType,
-        baseRate: item.employee.baseRate,
-        payUnits: item.payUnits,
-        adjustments: item.adjustments,
+        salaryType: employee.salaryType,
+        baseRate: employee.baseRate,
+        payUnits: historicalRecordSeed.payUnits,
+        adjustments: historicalRecordSeed.adjustments,
       });
 
       const record = await this.repository.createPayrollRecord({
-        payPeriodId: historicalPeriod.id,
-        employeeId: item.employee.id,
-        employeeCodeSnapshot: item.employee.employeeCode,
-        employeeNameSnapshot: item.employee.fullName,
-        employeeEmailSnapshot: item.employee.email,
-        departmentSnapshot: item.employee.department,
-        positionSnapshot: item.employee.position,
-        salaryTypeSnapshot: item.employee.salaryType,
-        baseRateSnapshot: item.employee.baseRate,
-        payUnits: item.payUnits,
+        payPeriodId: payPeriod.id,
+        employeeId: employee.id,
+        employeeCodeSnapshot: employee.employeeCode,
+        employeeNameSnapshot: employee.fullName,
+        employeeEmailSnapshot: employee.email,
+        departmentSnapshot: employee.department,
+        positionSnapshot: employee.position,
+        salaryTypeSnapshot: employee.salaryType,
+        baseRateSnapshot: employee.baseRate,
+        payUnits: historicalRecordSeed.payUnits,
         basePay: totals.basePay,
         additionsTotal: totals.additionsTotal,
         deductionsTotal: totals.deductionsTotal,
         netPay: totals.netPay,
-        status: 'paid',
-        paymentDate: historicalPeriod.paymentDate,
-        paymentNote: 'Manual transfer completed',
-        paymentReference: 'MARCH-2026-BATCH',
-        createdByUserId: adminAccount.user.id,
-        updatedByUserId: adminAccount.user.id,
+        status: historicalRecordSeed.status,
+        paymentDate: payPeriod.paymentDate,
+        paymentNote: historicalRecordSeed.paymentNote,
+        paymentReference: historicalRecordSeed.paymentReference,
+        createdByUserId: adminAccount.authUserId,
+        updatedByUserId: adminAccount.authUserId,
       });
 
       await this.repository.replacePayrollAdjustments({
         payrollRecordId: record.id,
-        adjustments: item.adjustments,
+        adjustments: historicalRecordSeed.adjustments,
       });
 
       await this.repository.updatePayrollRecord(record.id, {
-        status: 'paid',
-        paymentDate: historicalPeriod.paymentDate,
-        paymentNote: 'Manual transfer completed',
-        paymentReference: 'MARCH-2026-BATCH',
-        approvedByUserId: adminAccount.user.id,
-        approvedAt: new Date('2026-03-31T09:00:00.000Z'),
-        paidByUserId: adminAccount.user.id,
-        paidAt: new Date('2026-04-01T03:00:00.000Z'),
-        updatedByUserId: adminAccount.user.id,
+        status: historicalRecordSeed.status,
+        paymentDate: payPeriod.paymentDate,
+        paymentNote: historicalRecordSeed.paymentNote,
+        paymentReference: historicalRecordSeed.paymentReference,
+        approvedByUserId: adminAccount.authUserId,
+        approvedAt: new Date(historicalRecordSeed.approvedAt),
+        paidByUserId: adminAccount.authUserId,
+        paidAt: new Date(historicalRecordSeed.paidAt),
+        updatedByUserId: adminAccount.authUserId,
       });
     }
 

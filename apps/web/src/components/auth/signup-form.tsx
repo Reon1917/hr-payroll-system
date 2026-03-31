@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
 import { clientApiFetch } from "@/lib/api-client";
 
@@ -9,7 +8,6 @@ const fieldClassName =
   "mt-2 w-full rounded-md border border-border bg-white px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10";
 
 export function SignupForm() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,8 +39,7 @@ export function SignupForm() {
                 password,
               }),
             });
-            router.replace("/");
-            router.refresh();
+            window.location.assign("/");
           } catch (requestError) {
             setError(
               requestError instanceof Error
@@ -130,8 +127,9 @@ export function SignupForm() {
       </div>
 
       <div className="rounded-md border border-border bg-surface px-4 py-3 text-sm leading-6 text-muted">
-        If HR already created your employee record, signing up with the same email
-        will connect your portal account automatically.
+        If this email already matches an imported employee record, the account
+        links automatically. Otherwise the app creates a personal demo employee
+        profile so you can enter the portal right away.
       </div>
 
       {error ? (
@@ -151,7 +149,9 @@ export function SignupForm() {
         {isPending ? "Creating account..." : "Create account"}
       </button>
 
-      <p className="text-sm text-muted">Only email and password are enabled in this build.</p>
+      <p className="text-sm text-muted">
+        This public demo only supports email and password sign-up.
+      </p>
 
       <p className="text-center text-sm text-muted">
         Already have an account?{" "}

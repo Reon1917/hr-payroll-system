@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
 import { clientApiFetch } from "@/lib/api-client";
 
@@ -9,7 +8,6 @@ const fieldClassName =
   "mt-2 w-full rounded-md border border-border bg-white px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10";
 
 export function LoginForm() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -32,8 +30,7 @@ export function LoginForm() {
                 password,
               }),
             });
-            router.replace("/");
-            router.refresh();
+            window.location.assign("/");
           } catch (requestError) {
             setError(
               requestError instanceof Error
@@ -82,8 +79,9 @@ export function LoginForm() {
       </div>
 
       <div className="rounded-md border border-border bg-surface px-4 py-3 text-sm leading-6 text-muted">
-        Email and password are active now. If your employee record already exists,
-        use the same email to access your linked portal account.
+        This shared demo uses email and password only. Sign in with your own
+        signup for a personal portal, or use the seeded demo credentials for a
+        populated walkthrough.
       </div>
 
       {error ? (
@@ -103,7 +101,9 @@ export function LoginForm() {
         {isPending ? "Signing in..." : "Sign in"}
       </button>
 
-      <p className="text-sm text-muted">Only email and password are enabled in this build.</p>
+      <p className="text-sm text-muted">
+        Email and password are the active sign-in method in this demo build.
+      </p>
 
       <p className="text-center text-sm text-muted">
         Need an account?{" "}

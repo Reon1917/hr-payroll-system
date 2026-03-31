@@ -8,6 +8,7 @@ import {
 import { APP_REPOSITORY, type AppRepository } from '../storage/app-repository';
 import type { AuthenticatedRequest } from './auth-request';
 import { AuthService } from '../auth/auth.service';
+import { syncAppUserProfile } from '../auth/profile-sync';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -25,14 +26,27 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Authentication is required.');
     }
 
-    const profile = await this.repository.findUserProfileByAuthUserId(
+    let profile = await this.repository.findUserProfileByAuthUserId(
       session.user.id,
     );
 
     if (!profile) {
-      throw new UnauthorizedException(
-        'This account has no payroll profile assigned.',
+      await syncAppUserProfile({
+        authUserId: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        role: session.user.role ?? 'employee',
+      });
+
+      profile = await this.repository.findUserProfileByAuthUserId(
+        session.user.id,
       );
+
+      if (!profile) {
+        throw new UnauthorizedException(
+          'This account has no payroll profile assigned.',
+        );
+      }
     }
 
     const employee = profile.employeeId

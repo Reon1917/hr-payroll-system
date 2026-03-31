@@ -14,7 +14,7 @@ export default async function LoginPage() {
     <AuthShell
       mode="login"
       title="Sign in to payroll"
-      description="Use the email attached to your payroll workspace or employee portal account."
+      description="This is a shared demo build. Sign in with your own account or use one of the seeded demo users for a populated walkthrough."
     >
       <LoginForm />
     </AuthShell>

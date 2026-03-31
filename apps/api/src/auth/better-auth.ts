@@ -42,6 +42,7 @@ export const auth = betterAuth({
           await syncAppUserProfile({
             authUserId: user.id,
             email: user.email,
+            name: user.name,
             role: 'employee',
           });
         },

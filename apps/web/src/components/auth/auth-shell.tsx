@@ -24,7 +24,7 @@ const workspaceDetails = [
   { label: "Scope", value: "Employees, periods, payroll, portal" },
   { label: "Time zone", value: "Asia/Bangkok" },
   { label: "Currency", value: "THB" },
-  { label: "Access", value: "Email and password" },
+  { label: "Access", value: "Shared demo / email and password" },
 ];
 
 const demoAccounts = [
@@ -65,7 +65,7 @@ export function AuthShell({
               <p className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-foreground">
                 Payroll System
               </p>
-              <p className="text-sm text-muted">HR and employee payroll access</p>
+              <p className="text-sm text-muted">Shared portfolio demo</p>
             </div>
           </Link>
 
@@ -106,6 +106,11 @@ export function AuthShell({
                 Use one workspace to maintain employee records, manage payroll
                 periods, review results, and give staff a simple payslip portal.
               </p>
+              <div className="mt-6 max-w-2xl rounded-md border border-[#d8e4ff] bg-[#f6f9ff] px-4 py-3 text-sm leading-6 text-muted">
+                This is a shared resume demo. Public signup creates a personal
+                employee portal account, while the seeded demo users remain the
+                fastest way to inspect the full sample dataset.
+              </div>
             </div>
 
             <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
@@ -126,8 +131,9 @@ export function AuthShell({
                 </dl>
 
                 <div className="mt-5 rounded-md border border-border bg-surface px-4 py-3 text-sm leading-6 text-muted">
-                  Accounts connect automatically when the signup email matches an
-                  employee record already created by HR.
+                  New public signups are provisioned into a demo employee
+                  profile automatically unless the email already matches an
+                  imported employee record.
                 </div>
               </section>
 
@@ -160,7 +166,9 @@ export function AuthShell({
               <div className="flex flex-col gap-1 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-sm font-semibold text-foreground">Demo access</h2>
-                  <p className="text-sm text-muted">Seeded accounts for quick review.</p>
+                  <p className="text-sm text-muted">
+                    Shared seeded accounts for the fullest walkthrough.
+                  </p>
                 </div>
                 <p className="text-xs uppercase tracking-[0.16em] text-muted">
                   Test credentials

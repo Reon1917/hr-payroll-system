@@ -1,11 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
 import { clientApiFetch } from "@/lib/api-client";
 
 export function LogoutButton() {
-  const router = useRouter();
   const [isPending, setIsPending] = useState(false);
 
   return (
@@ -18,8 +16,7 @@ export function LogoutButton() {
             await clientApiFetch("/auth/sign-out", {
               method: "POST",
             });
-            router.replace("/login");
-            router.refresh();
+            window.location.assign("/login");
           } finally {
             setIsPending(false);
           }

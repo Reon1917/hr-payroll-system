@@ -14,7 +14,7 @@ export default async function SignupPage() {
     <AuthShell
       mode="signup"
       title="Create payroll account"
-      description="Use the same email assigned by HR. If an employee record already exists for that address, the portal account will connect automatically after signup."
+      description="Create a public demo account. If the email already matches an imported employee, the account links automatically; otherwise the system provisions a personal demo employee profile for you."
     >
       <SignupForm />
     </AuthShell>
